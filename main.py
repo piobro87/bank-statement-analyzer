@@ -2,11 +2,20 @@ import pdfplumber
 import os
 import re
 from dotenv import load_dotenv
+from pprint import pprint
 
 load_dotenv()
 
 PDF_PASSWORD = os.getenv('PDF_PASSWORD')
 PDF_PATH = 'pdf/3055_marzec_2026.pdf'
+OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY', 
+                      'PRZELEWWŁASNY',
+                      'BLIKP2P-WYCHODZĄCY',
+                      'AUTOMATYCZNASPŁATAKARTY',
+                      'WYPŁATAWBANKOMACIE', 
+                      'PROWIZJA',
+                      'BLIKZAKUPE-COMMERCE',
+                    ]
 
 def get_lines(pdf) -> list[str]:
     all_lines = []
@@ -18,18 +27,24 @@ def get_lines(pdf) -> list[str]:
 
     return all_lines
 
-def is_transaction_line(line: str) -> bool:
+def is_transaction_line(line: str, operation_keywords: list) -> bool:
     date_pattern = r"^\d{2}-\d{2}-\d{4}"
-    operation_keywords = ['ZAKUPPRZYUŻYCIUKARTY', 
-                          'PRZELEWWŁASNY',
-                          'BLIKP2P-WYCHODZĄCY',
-                          'AUTOMATYCZNASPŁATAKARTY',
-                          'WYPŁATAWBANKOMACIE', 
-                          'PROWIZJA',
-                          'BLIKZAKUPE-COMMERCE',
-                          ]
     return (bool(re.match(date_pattern, line)) 
             and any(keyword in line for keyword in operation_keywords))
+
+def group_lines_into_transactions(lines) -> list:
+    transactions = []
+    current_transaction = []
+
+    for line in lines:
+        if is_transaction_line(line, OPERATION_KEYWORDS):
+            if current_transaction:
+                transactions.append(current_transaction)
+            current_transaction = [line]
+        else:
+            if current_transaction:
+                current_transaction.append(line)            
+    return transactions
 
 def main():
 
@@ -37,9 +52,8 @@ def main():
         
         lines = get_lines(pdf)
 
-        for line in lines:
-            if is_transaction_line(line):
-                print(repr(line))        
+        transactions = group_lines_into_transactions(lines)
+        pprint(transactions, width=100, indent=2)     
 
 
 if __name__ == "__main__":
