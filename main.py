@@ -15,6 +15,8 @@ OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY',
                       'WYPŁATAWBANKOMACIE', 
                       'PROWIZJA',
                       'BLIKZAKUPE-COMMERCE',
+                      'OPŁATA',
+                      'PRZYCHODZĄCY',
                     ]
 
 def get_lines(pdf) -> list[str]:
@@ -33,7 +35,13 @@ def is_transaction_start(line: str, operation_keywords: list) -> bool:
             and any(keyword in line for keyword in operation_keywords))
 
 def is_transaction_line(line: str) -> bool:
-    pass
+    if is_transaction_start(line, OPERATION_KEYWORDS):
+        return True
+    elif "DATATRANSAKCJI" in line or "PLN" in line:
+        return True
+    else:
+        return False
+    
 
 
 def group_lines_into_transactions(lines) -> list:
@@ -46,8 +54,10 @@ def group_lines_into_transactions(lines) -> list:
                 transactions.append(current_transaction)
             current_transaction = [line]
         else:
-            if current_transaction:
-                current_transaction.append(line)            
+            if current_transaction and is_transaction_line(line):
+                current_transaction.append(line)
+    if current_transaction:
+        transactions.append(current_transaction)
     return transactions
 
 
@@ -58,7 +68,9 @@ def main():
         lines = get_lines(pdf)
 
         transactions = group_lines_into_transactions(lines)
-        pprint(transactions, width=100, indent=2)     
+        for transaction in transactions:
+            print(transaction)
+            print()     
 
 
 if __name__ == "__main__":
