@@ -18,6 +18,7 @@ OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY',
                       'OPŁATA',
                       'PRZYCHODZĄCY',
                     ]
+DATE_PATTERN = r"^\d{2}-\d{2}-\d{4}"
 
 def get_lines(pdf) -> list[str]:
     all_lines = []
@@ -30,8 +31,7 @@ def get_lines(pdf) -> list[str]:
     return all_lines
 
 def is_transaction_start(line: str, operation_keywords: list) -> bool:
-    date_pattern = r"^\d{2}-\d{2}-\d{4}"
-    return (bool(re.match(date_pattern, line)) 
+    return (bool(re.match(DATE_PATTERN, line)) 
             and any(keyword in line for keyword in operation_keywords))
 
 def is_transaction_line(line: str) -> bool:
@@ -60,6 +60,21 @@ def group_lines_into_transactions(lines) -> list:
         transactions.append(current_transaction)
     return transactions
 
+def parse_transaction_block(block: list[str]) -> dict:
+    first_line = block[0]
+    transaction_details: dict[str, str | None] = {
+        "date": None ,
+        "operation_type": None,
+        "amount": None,
+    }
+    match = re.search(DATE_PATTERN, first_line)
+    if match:
+        transaction_details["date"] = match.group()
+
+    return transaction_details
+
+
+
 
 def main():
 
@@ -69,8 +84,9 @@ def main():
 
         transactions = group_lines_into_transactions(lines)
         for transaction in transactions:
-            print(transaction)
-            print()     
+            parsed = parse_transaction_block(transaction)
+            print(parsed)
+         
 
 
 if __name__ == "__main__":
