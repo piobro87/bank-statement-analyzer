@@ -19,6 +19,7 @@ OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY',
                       'PRZYCHODZĄCY',
                     ]
 DATE_PATTERN = r"^\d{2}-\d{2}-\d{4}"
+AMOUNT_PATTERN = r"-?\d+[.,]\d{2}?"
 
 def get_lines(pdf) -> list[str]:
     all_lines = []
@@ -62,14 +63,20 @@ def group_lines_into_transactions(lines) -> list:
 
 def parse_transaction_block(block: list[str]) -> dict:
     first_line = block[0]
-    transaction_details: dict[str, str | None] = {
-        "date": None ,
+    transaction_details: dict[str, str | None | float] = {
+        "date": None,
         "operation_type": None,
         "amount": None,
     }
-    match = re.search(DATE_PATTERN, first_line)
-    if match:
-        transaction_details["date"] = match.group()
+    date_match = re.search(DATE_PATTERN, first_line)
+    if date_match:
+        transaction_details["date"] = date_match.group()
+    amount_match = re.findall(AMOUNT_PATTERN, first_line)
+    if amount_match:
+        transaction_details["amount"] = float(amount_match[0].replace(',', '.'))
+    operation_type_match = ...   
+    
+    # TODO rozroznic date transakcji od ksiegowania -> jesli jest d. transakcji to nadpisac slownik
 
     return transaction_details
 
