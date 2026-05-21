@@ -18,7 +18,8 @@ OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY',
                       'OPŁATA',
                       'PRZYCHODZĄCY',
                     ]
-DATE_PATTERN = r"^\d{2}-\d{2}-\d{4}"
+BOOKING_DATE_PATTERN = r"^\d{2}-\d{2}-\d{4}"
+TRANSACTION_DATE_PATTERN = r"\d{4}-\d{2}-\d{2}"
 AMOUNT_PATTERN = r"-?\d+[.,]\d{2}?"
 
 def get_lines(pdf) -> list[str]:
@@ -32,7 +33,7 @@ def get_lines(pdf) -> list[str]:
     return all_lines
 
 def is_transaction_start(line: str, operation_keywords: list) -> bool:
-    return (bool(re.match(DATE_PATTERN, line)) 
+    return (bool(re.match(BOOKING_DATE_PATTERN, line)) 
             and any(keyword in line for keyword in operation_keywords))
 
 def is_transaction_line(line: str) -> bool:
@@ -65,19 +66,39 @@ def parse_transaction_block(block: list[str]) -> dict:
     first_line = block[0]
     transaction_details: dict[str, str | None | float] = {
         "date": None,
+        "transaction_date": None,
+        "booking_date": None,
         "operation_type": None,
         "amount": None,
     }
-    date_match = re.search(DATE_PATTERN, first_line)
-    if date_match:
-        transaction_details["date"] = date_match.group()
+    booking_date_match = re.search(BOOKING_DATE_PATTERN, first_line)
+    if booking_date_match:
+        transaction_details["booking_date"] = booking_date_match.group()
+
+    for line in block:
+        transaction_date_match = re.search(TRANSACTION_DATE_PATTERN, line)
+        if transaction_date_match:
+            transaction_details['transaction_date'] = transaction_date_match.group()
+    
+    effective_date = (
+        transaction_details["transaction_date"] 
+        or transaction_details["booking_date"]
+    )
+
+    transaction_details["date"] = effective_date
+    
+
+    
+
+
+
     amount_match = re.findall(AMOUNT_PATTERN, first_line)
     if amount_match:
         transaction_details["amount"] = float(amount_match[0].replace(',', '.'))
     operation_type_match = ...   
     
     # TODO rozroznic date transakcji od ksiegowania -> jesli jest d. transakcji to nadpisac slownik
-
+ 
     return transaction_details
 
 
