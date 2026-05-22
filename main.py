@@ -12,12 +12,14 @@ PDF_PATH = 'pdf/3055_marzec_2026.pdf'
 OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY', 
                       'PRZELEWWŁASNY',
                       'BLIKP2P-WYCHODZĄCY',
+                      'BLIKP2P-PRZYCHODZĄCY',
                       'AUTOMATYCZNASPŁATAKARTY',
-                      'WYPŁATAWBANKOMACIE', 
+                      'WYPŁATAWBANKOMACIE',
+                      'WPŁATAWEWPŁATOMACIE', 
                       'PROWIZJA',
                       'BLIKZAKUPE-COMMERCE',
                       'OPŁATA',
-                      'PRZYCHODZĄCY',
+                      'PRZELEWZEWNĘTRZNYPRZYCHODZĄCY',
                     ]
 BOOKING_DATE_PATTERN = r"^\d{2}-\d{2}-\d{4}"
 TRANSACTION_DATE_PATTERN = r"\d{4}-\d{2}-\d{2}"
@@ -94,15 +96,14 @@ def parse_transaction_block(block: list[str]) -> dict:
 
     transaction_details["date"] = effective_date
     
-
-    
-
-
-
     amount_match = re.findall(AMOUNT_PATTERN, first_line)
     if amount_match:
         transaction_details["amount"] = float(amount_match[0].replace(',', '.'))
-    operation_type_match = ...   
+    
+    for operation_type in OPERATION_KEYWORDS:
+        if operation_type in first_line:
+            transaction_details["operation_type"] = operation_type
+            break
     
  
     return transaction_details
@@ -115,11 +116,12 @@ def main():
     with pdfplumber.open(PDF_PATH, password=PDF_PASSWORD) as pdf:
         
         lines = get_lines(pdf)
-
+        x = 1
         transactions = group_lines_into_transactions(lines)
         for transaction in transactions:
             parsed = parse_transaction_block(transaction)
             print(parsed)
+            # print(transaction)
          
 
 
