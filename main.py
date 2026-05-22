@@ -3,6 +3,7 @@ import os
 import re
 from dotenv import load_dotenv
 from pprint import pprint
+from datetime import datetime
 
 load_dotenv()
 
@@ -21,6 +22,11 @@ OPERATION_KEYWORDS = ['ZAKUPPRZYUŻYCIUKARTY',
 BOOKING_DATE_PATTERN = r"^\d{2}-\d{2}-\d{4}"
 TRANSACTION_DATE_PATTERN = r"\d{4}-\d{2}-\d{2}"
 AMOUNT_PATTERN = r"-?\d+[.,]\d{2}?"
+
+def normalize_booking_date(date: str) -> str:
+    normalized_booking_date = datetime.strptime(date, "%d-%m-%Y").strftime("%Y-%m-%d")
+
+    return normalized_booking_date
 
 def get_lines(pdf) -> list[str]:
     all_lines = []
@@ -73,7 +79,8 @@ def parse_transaction_block(block: list[str]) -> dict:
     }
     booking_date_match = re.search(BOOKING_DATE_PATTERN, first_line)
     if booking_date_match:
-        transaction_details["booking_date"] = booking_date_match.group()
+        normalized_booking_date = normalize_booking_date(booking_date_match.group())
+        transaction_details["booking_date"] = normalized_booking_date
 
     for line in block:
         transaction_date_match = re.search(TRANSACTION_DATE_PATTERN, line)
@@ -97,7 +104,6 @@ def parse_transaction_block(block: list[str]) -> dict:
         transaction_details["amount"] = float(amount_match[0].replace(',', '.'))
     operation_type_match = ...   
     
-    # TODO rozroznic date transakcji od ksiegowania -> jesli jest d. transakcji to nadpisac slownik
  
     return transaction_details
 
